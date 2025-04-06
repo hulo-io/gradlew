@@ -1,3 +1,4 @@
+// @hulo-build batch
 ${@if "%DEBUG%" == "" @echo off}
 // ##########################################################################
 //
@@ -21,79 +22,108 @@ if $DIRNAME.is_empty() {
 var APP_BASE_NAME: str = $FILENAME
 var APP_HOME = $DIRNAME
 
+declare var JAVA_HOME: str?
+
 // Find java.exe
-if env["JAVA_HOME"] {
+if $JAVA_HOME {
     findJavaFromJavaHome()
 }
 
 var JAVA_EXE: Command = c"java.exe"
-// TODO --version to -version
-& $JAVA_EXE --version >null $stderr>$stdout
 
-if "%ERRORLEVEL%" == "0" goto init
+try {
+    & $JAVA_EXE `-version` >null $stderr>$stdout
+} catch {
+    echo """
+ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 
-echo.
-echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
-echo.
-echo Please set the JAVA_HOME variable in your environment to match the
-echo location of your Java installation.
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation.
+"""
+    fail
+}
 
-goto fail
+fn findJavaFromJavaHome() {
+    $JAVA_HOME=$JAVA_HOME.replace('"', '')
+    set JAVA_EXE=%JAVA_HOME%/bin/java.exe
 
-:findJavaFromJavaHome
-set JAVA_HOME=%JAVA_HOME:"=%
-set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+    if ${exist "{{ &JAVA_EXE }}"} {
+        init
+    }
 
-if exist "%JAVA_EXE%" goto init
+    echo """
+ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
 
-echo.
-echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME%
-echo.
-echo Please set the JAVA_HOME variable in your environment to match the
-echo location of your Java installation.
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation.
+"""
 
-goto fail
+    fail
+}
 
-:init
-@rem Get command-line arguments, handling Windowz variants
+fn init() {
+// Get command-line arguments, handling Windowz variants
+    if runtime.os != "Windows_NT" {
+        win9xME_args
+    }
 
-if not "%OS%" == "Windows_NT" goto win9xME_args
-if "%@eval[2+2]" == "4" goto 4NT_args
+    if ${"%@eval[2+2]" == "4"} {
+        4NT_args
+    }
+}
 
-:win9xME_args
-@rem Slurp the command line arguments.
-set CMD_LINE_ARGS=
-set _SKIP=2
+fn win9xME_args() {
+    // Slurp the command line arguments.
+    var CMD_LINE_ARGS: str[]?
+    var _SKIP=2
 
-:win9xME_args_slurp
-if "x%~1" == "x" goto execute
+    if ${"x%~1" == "x"} {
+        execute
+        return
+    }
 
-set CMD_LINE_ARGS=%*
-goto execute
+    ${ set {{ @CMD_LINE_ARGS }}=%* }
+    execute
+}
 
-:4NT_args
-@rem Get arguments from the 4NT Shell from JP Software
-set CMD_LINE_ARGS=%$
+fn 4NT_args() {
+    // Get arguments from the 4NT Shell from JP Software
+    set CMD_LINE_ARGS=%$
 
-:execute
-@rem Setup the command line
+    execute()
+}
 
-set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+fn execute() {
+    try {
+        // Setup the command line
+        var CLASSPATH = "$APP_HOME\gradle\wrapper\gradle-wrapper.jar"
 
-@rem Execute Gradle
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %CMD_LINE_ARGS%
+        // Execute Gradle
+        & $JAVA_EXE $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "-Dorg.gradle.appname=%APP_BASE_NAME%" `-classpath` "%CLASSPATH%" "org.gradle.wrapper.GradleWrapperMain" $CMD_LINE_ARGS
+    
+        // End local scope for the variables with windows NT shell
+        mainEnd()
+    } catch {
+        fail
+    }
+}
 
-:end
-@rem End local scope for the variables with windows NT shell
-if "%ERRORLEVEL%"=="0" goto mainEnd
+fn fail() {
+    declare var GRADLE_EXIT_CONSOLE: str?
+    // Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
+    // the _cmd.exe /c_ return code!
+    if $GRADLE_EXIT_CONSOLE != "" {
+        exit 1
+    }
+    ${exit /b 1}
+}
 
-:fail
-// Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
-// the _cmd.exe /c_ return code!
-if  not "" == "%GRADLE_EXIT_CONSOLE%" exit 1
-exit /b 1
+fn mainEnd() {
+    if runtime.os == "Windows_NT" {
+        ${endlocal}
+    }
 
-:mainEnd
-if "%OS%"=="Windows_NT" endlocal
+    omega()
+}
 
-:omega
+fn omega() {}
