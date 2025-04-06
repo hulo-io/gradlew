@@ -45,7 +45,7 @@ location of your Java installation.
 
 fn findJavaFromJavaHome() {
     $JAVA_HOME=$JAVA_HOME.replace('"', '')
-    set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+    $JAVA_EXE = "$JAVA_HOME/bin/java.exe"
 
     if ${exist "{{ &JAVA_EXE }}"} {
         init
