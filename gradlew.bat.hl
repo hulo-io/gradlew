@@ -32,7 +32,7 @@ if $JAVA_HOME {
 var JAVA_EXE: Command = c"java.exe"
 
 try {
-    & $JAVA_EXE `-version` >null $stderr>$stdout
+    & $JAVA_EXE ${-version} >null $stderr>$stdout
 } catch {
     echo """
 ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
@@ -99,7 +99,7 @@ fn execute() {
         var CLASSPATH = "$APP_HOME\gradle\wrapper\gradle-wrapper.jar"
 
         // Execute Gradle
-        & $JAVA_EXE $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "-Dorg.gradle.appname=%APP_BASE_NAME%" `-classpath` "%CLASSPATH%" "org.gradle.wrapper.GradleWrapperMain" $CMD_LINE_ARGS
+        & $JAVA_EXE $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "-Dorg.gradle.appname=%APP_BASE_NAME%" ${-classpath} "%CLASSPATH%" "org.gradle.wrapper.GradleWrapperMain" $CMD_LINE_ARGS
     
         // End local scope for the variables with windows NT shell
         mainEnd()
